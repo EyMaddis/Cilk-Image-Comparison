@@ -1,0 +1,71 @@
+>cilkview puzzlediff_cpp.exe boat.jpg set
+
+Cilkview: Generating scalability data
+Cilkview Scalability Analyzer V2.0.0, Build 4225
+Number of file names found in search directory: 21
+
+*** Pictures found to be similar to boat.jpg ***
+
+0.586036 set\10mpix_boat.jpg
+0.632800 set\0_5mpix_tree.jpg
+0.675096 set\2mpix_tree.jpg
+0.676178 set\10mpix_building.jpg
+0.682930 set\5mpix_tree2.jpg
+0.684140 set\5mpix_tree.jpg
+0.690199 set\2mpix_car.jpg
+0.694942 set\5mpix_building.jpg
+0.696920 set\20mpix_car.jpg
+0.697376 set\20mpix_building.jpg
+
+*** Pictures found to be identical/close resemblance to boat.jpg ***
+
+0.000000 set\0_5mpix_boat.jpg
+
+Whole Program Statistics
+1) Parallelism Profile
+   Work :                                        30,303,876,195 instructions
+   Span :                                        2,937,952,615 instructions
+   Burdened span :                               2,939,197,600 instructions
+   Parallelism :                                 10.31
+   Burdened parallelism :                        10.31
+   Number of spawns/syncs:                       94,241
+   Average instructions / strand :               107,185
+   Strands along span :                          105
+   Average instructions / strand on span :       27,980,501
+   Total number of atomic instructions :         174,019
+   Frame count :                                 188,523
+
+2) Speedup Estimate
+     2 processors:       1.72 - 2.00
+     4 processors:       2.68 - 4.00
+     8 processors:       3.71 - 8.00
+    16 processors:       4.61 - 10.31
+    32 processors:       5.24 - 10.31
+    64 processors:       5.62 - 10.31
+   128 processors:       5.83 - 10.31
+   256 processors:       5.95 - 10.31
+
+Cilk Parallel Region(s) Statistics - Elapsed time: 0.390 seconds
+1) Parallelism Profile
+   Work :                                        30,252,155,525 instructions
+   Span :                                        2,886,231,945 instructions
+   Burdened span :                               2,887,476,930 instructions
+   Parallelism :                                 10.48
+   Burdened parallelism :                        10.48
+   Number of spawns/syncs:                       94,241
+   Average instructions / strand :               107,002
+   Strands along span :                          52
+   Average instructions / strand on span :       55,504,460
+   Total number of atomic instructions :         174,019
+   Frame count :                                 188,523
+   Entries to parallel region :                  4
+
+2) Speedup Estimate
+     2 processors:       1.72 - 2.00
+     4 processors:       2.69 - 4.00
+     8 processors:       3.75 - 8.00
+    16 processors:       4.66 - 10.48
+    32 processors:       5.31 - 10.48
+    64 processors:       5.70 - 10.48
+   128 processors:       5.92 - 10.48
+   256 processors:       6.04 - 10.48
