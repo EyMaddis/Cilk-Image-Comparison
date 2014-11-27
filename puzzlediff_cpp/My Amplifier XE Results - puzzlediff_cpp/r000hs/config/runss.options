@@ -1,0 +1,20 @@
+-r
+C:\Users\post_000\Desktop\Puzzle_vs2010\puzzlediff_cpp\My Amplifier XE Results - puzzlediff_cpp\r000hs
+--data-limit-mb=500
+--stack-stitching
+--follow-child
+--type=frame:counters
+--stackwalk=offline
+--type=cswitch
+--mrte-mode=auto
+--type=cpu:counters
+--type=cpu:stack
+--interval=10
+--search-dir
+sym=C:\Users\post_000\Desktop\Puzzle_vs2010\x64\Release
+--search-dir
+sym=C:\Users\post_000\Desktop\Puzzle_vs2010
+--
+C:\Users\post_000\Desktop\Puzzle_vs2010\x64\Release\puzzlediff_cpp.exe
+boat.jpg
+set
