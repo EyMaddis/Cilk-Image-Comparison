@@ -179,7 +179,7 @@ int main(int argc, char *argv[])
 	writeOutputLine("*** Pictures found to be similar to " + string(opts.refImage) + " ***\n ");
 	for (int i = 0; i < newSize; i++){
 		pair = similarImages[i]; //topList[i];
-		writeOutputLine(to_string(pair.distance) + " " + pair.fileName);
+		writeOutputLine(to_string((long double)pair.distance) + " " + pair.fileName);
 	}
 
 	// print identical
@@ -187,7 +187,7 @@ int main(int argc, char *argv[])
 	size = identicalImages.size();
 	for (int i = 0; i < min(10, size); i++) {
 		pair = identicalImages[i];
-		writeOutputLine(to_string(pair.distance) + " " + pair.fileName);
+		writeOutputLine(to_string((long double) pair.distance) + " " + pair.fileName);
 	}
 
 
