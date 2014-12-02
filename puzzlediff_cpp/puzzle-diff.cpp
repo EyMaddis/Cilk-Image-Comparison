@@ -9,6 +9,7 @@ extern "C" {
 #include "listdir.h"
 #include <fstream>
 #include <cilk/cilk.h>
+#include "cilktime.h"
 
 // for qsort
 #include <algorithm>
@@ -103,7 +104,8 @@ int main(int argc, char *argv[])
     Opts opts;
     PuzzleContext context;
 	PuzzleCvec cvec1;
-    
+	unsigned long long start_ticks = cilk_getticks();
+
     puzzle_init_context(&context);    
     parse_opts(&opts, &context, argc, argv);
 	if (outputFile.length() > 0){
@@ -118,6 +120,8 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+
+	std::cout << "Reference image loaded in " << (cilk_getticks() - start_ticks) << " milliseconds." << std::endl;
 	vector<string> fileNamesVector;
 	
 	listDir(opts.dir, fileNamesVector);
@@ -127,6 +131,8 @@ int main(int argc, char *argv[])
 	// parallel cvec distance calculation
 	unsigned int files = fileNamesVector.size();
 	vector<ImageDistancePair> distances(files);
+	start_ticks = cilk_getticks();
+
 	cilk_for(unsigned int i = 0; i < files; i++){
 		PuzzleCvec puzzleCvec;
 		double d;
@@ -145,11 +151,14 @@ int main(int argc, char *argv[])
 		distances[i] = pair;
 		puzzle_free_cvec(&context, &puzzleCvec);
 	}
+	std::cout << "all images loaded in " << (cilk_getticks() - start_ticks) << " milliseconds." << std::endl;
 
 
 	// filter by thresholds
 	vector<ImageDistancePair> similarImages;
 	vector<ImageDistancePair> identicalImages;
+
+	start_ticks = cilk_getticks();
 
 	ImageDistancePair pair;
 	for(unsigned int i = 0; i < files; i++){
@@ -163,11 +172,17 @@ int main(int argc, char *argv[])
 			similarImages.push_back(pair);
 		}
 	}
+	std::cout << "all images loaded in " << (cilk_getticks() - start_ticks) << " milliseconds." << std::endl;
+
+	start_ticks = cilk_getticks();
 
 	int size = similarImages.size();
 	cilk_spawn sort(similarImages.begin(), similarImages.end());
 	sort(identicalImages.begin(), identicalImages.end());
 	cilk_sync;
+
+	std::cout << "sorted in " << (cilk_getticks() - start_ticks) << " milliseconds." << std::endl;
+
 
 	//struct_qsort(similarImages.begin(),similarImages.end());
 	

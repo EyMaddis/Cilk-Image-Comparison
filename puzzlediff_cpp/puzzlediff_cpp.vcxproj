@@ -89,6 +89,7 @@
     <ClCompile Include="puzzle-diff.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="cilktime.h" />
     <ClInclude Include="listdir.h" />
     <ClInclude Include="pgetopt.hpp" />
   </ItemGroup>
