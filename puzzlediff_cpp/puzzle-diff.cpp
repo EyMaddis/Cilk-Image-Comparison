@@ -15,9 +15,9 @@ extern "C" {
 
 /*******************************************************
 *	
-*	Files containing paralell code:
-*	puzzle-dif.cpp
-*	libpuzzle/devec.c
+*	files containing parallel code:
+*	puzzle-diff.cpp (this here)
+*	libpuzzle/dvec.c
 *
 ********************************************************/
 
@@ -39,15 +39,13 @@ typedef struct ImageDistancePair_ {
 string outputFile = "";
 ofstream outputStream;
 
-// for sorting
-bool operator<(ImageDistancePair p, ImageDistancePair other){ return p.distance < other.distance; };
-
 void usage(void)
 {
     puts("\nUsage: puzzle-diff [-o <outputFile>] referenceImage directory\n");
     exit(EXIT_SUCCESS);
 }
 
+// writes to console and maybe also to a file with the -o flag
 void writeOutputLine(string out){
 	cout << out << endl;
 	if (outputFile.length() > 0)
@@ -55,6 +53,7 @@ void writeOutputLine(string out){
 	
 }
 
+// parse command arguments
 int parse_opts(Opts * const opts, PuzzleContext * context,
                int argc, char **argv) {
     int opt;
@@ -92,10 +91,9 @@ int parse_opts(Opts * const opts, PuzzleContext * context,
 
 
 /**********************************************
-*Sort images from imagelist into toplist
+* Sort images from imagelist into toplist
 ***********************************************/
 void sortImages(vector<ImageDistancePair>& imagelist, vector<ImageDistancePair>& toplist){
-
 	unsigned int vecSize = imagelist.size();
 	unsigned int topSize = toplist.size();
 
@@ -112,16 +110,16 @@ void sortImages(vector<ImageDistancePair>& imagelist, vector<ImageDistancePair>&
 				if (toplist[j].distance == imagelist[i].distance){ // sort out duplicates						
 					break;						
 				}
-				swap(toplist[j], imagelist[i]);					
+				swap(toplist[j], imagelist[i]);	// we don't need a separate variable for that			
 			}
 		}
 	}	
 }
 
 /**********************************************************************
-*Sort images from imagelist into toplist (toplist contains dublicates)
+*Sort images from imagelist into toplist (toplist contains duplicates)
 ************************************************************************/
-void sortImagesDublicate(vector<ImageDistancePair>& imagelist, vector<ImageDistancePair>& toplist){
+void sortImagesDuplicate(vector<ImageDistancePair>& imagelist, vector<ImageDistancePair>& toplist){
 
 	unsigned int vecSize = imagelist.size();
 	unsigned int topSize = toplist.size();
@@ -177,12 +175,14 @@ int main(int argc, char *argv[])
 	vector<ImageDistancePair> distances(files);
 	start_ticks = cilk_getticks();
 
-	//Load each file in one thread
+	// load each file in one thread, stores the results in an array and sort later to avoid data races 
 	cilk_for(unsigned int i = 0; i < files; i++){
 		PuzzleCvec puzzleCvec;
 		double d;
 		const char* fileName = fileNamesVector[i].c_str();
 		ImageDistancePair pair;
+		
+		// calculate puzzle vector and distance
 		puzzle_init_cvec(&context, &puzzleCvec);
 		if (puzzle_fill_cvec_from_file(&context, &puzzleCvec, fileName) == 0){
 			pair.distance = puzzle_vector_normalized_distance(&context, &cvec1, &puzzleCvec, opts.fix_for_texts);
@@ -203,7 +203,7 @@ int main(int argc, char *argv[])
 	vector<ImageDistancePair> similarImages;
 	vector<ImageDistancePair> identicalImages;
 	vector<ImageDistancePair> toplist(10);
-	vector<ImageDistancePair> simmilarToplist(10);
+	vector<ImageDistancePair> similarToplist(10);
 
 	start_ticks = cilk_getticks();
 
@@ -225,8 +225,8 @@ int main(int argc, char *argv[])
 
 	
 	//Create toplist
-	cilk_spawn	sortImages(similarImages, simmilarToplist);	
-	sortImagesDublicate(identicalImages, toplist);
+	cilk_spawn	sortImages(similarImages, similarToplist);	
+	sortImagesDuplicate(identicalImages, toplist);
 	cilk_sync;
 	
 
@@ -237,10 +237,10 @@ int main(int argc, char *argv[])
 	// print results
 
 	// top 10 list or less
-	unsigned int size = simmilarToplist.size();
+	unsigned int size = similarToplist.size();
 	writeOutputLine("*** Pictures found to be similar to " + string(opts.refImage) + " ***\n ");
 	for (int i = 0; i < size; i++){
-		pair = simmilarToplist[i]; //topList[i];
+		pair = similarToplist[i]; //topList[i];
 		if (pair.fileName == "") continue;
 		writeOutputLine(to_string((long double)pair.distance) + " " + pair.fileName);
 	}
