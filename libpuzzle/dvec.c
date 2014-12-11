@@ -201,11 +201,12 @@ static int puzzle_autocrop_view(PuzzleContext * context,
 	size_t arraySize = view->sizeof_map*sizeof(unsigned char);
 	unsigned char *readOnlyMaptr = malloc(arraySize);
 	memcpy(readOnlyMaptr, view->map, arraySize);
-
+	//Paralized for loop 
 	cilk_for(unsigned int localy = cropy0; localy <= cropy1; localy++)
 	{
 		unsigned int iteration = localy - cropy0;
 		unsigned int x = cropx0;
+		//Compute pointer value for each loop to avoid data races
 		unsigned char* base_maptr = (view->map + iteration*(cropx1 - cropx0 + 1));
 		unsigned int xIter = 0;
 		do {
@@ -269,10 +270,11 @@ static int puzzle_getview_from_gdimage(PuzzleContext * const context,
 
 	if (gdImageTrueColor(gdimage) != 0)
 	{
-
+		//Paralized for loop (one thread for each pixel colum)
 		cilk_for(int x_temp = x1 + 1; x_temp != x0; x_temp--)
 		{
 			unsigned int x, y;
+			//Compute pointer value for each loop to avoid data races
 			unsigned char *maptr_tmp = maptr + (((x1 + 1) - x_temp)*(y1 + 1));
 
 			x = x_temp - 1;
@@ -287,11 +289,12 @@ static int puzzle_getview_from_gdimage(PuzzleContext * const context,
 
 	}
 	else
-	{
-
+	{	
+		//Paralized for loop (one thread for each pixel colum)
 		cilk_for(int x_temp = x1 + 1; x_temp != x0; x_temp--)
 		{
 			unsigned int x, y;
+			//Compute pointer value for each loop to avoid data races
 			unsigned char *maptr_tmp = maptr + (((x1 + 1) - x_temp)*(y1 + 1));
 
 			x = x_temp - 1;

@@ -10,11 +10,16 @@ extern "C" {
 #include <fstream>
 #include <cilk/cilk.h>
 #include "cilktime.h"
-
-// for qsort
 #include <algorithm>
-//#include <iterator>
-//#include <functional>
+
+
+/*******************************************************
+*	
+*	Files containing paralell code:
+*	puzzle-dif.cpp
+*	libpuzzle/devec.c
+*
+********************************************************/
 
 using namespace std;
 
@@ -85,50 +90,48 @@ int parse_opts(Opts * const opts, PuzzleContext * context,
     return 0;
 }
 
-/* Does not sort correctly
-void struct_qsort(ImageDistancePair * begin, ImageDistancePair * end)
-{
-	if (begin != end) {
-		--end;  // Exclude last element (pivot) from partition
-		ImageDistancePair * middle = partition(begin, end, bind2nd(less<ImageDistancePair>(), *end));
-		using swap;
-		swap(*end, *middle);    // move pivot to middle
-		cilk_spawn struct_qsort(begin, middle);
-		struct_qsort(++middle, ++end); // Exclude pivot and restore end
-		cilk_sync;
-	}
-} */
 
+/**********************************************
+*Sort images from imagelist into toplist
+***********************************************/
 void sortImages(vector<ImageDistancePair>& imagelist, vector<ImageDistancePair>& toplist){
 
 	unsigned int vecSize = imagelist.size();
 	unsigned int topSize = toplist.size();
 
+	//Create empty toplist
 	for (int j = 0; j < topSize; j++){
 			toplist[j].distance = 2.0;			
 			toplist[j].fileName = "";
-		}		
-		for (int i = 0; i < vecSize; i++){
-			for (int j = 0; j < topSize; j++){
-				if (toplist[j].distance >= imagelist[i].distance){
-					if (toplist[j].distance == imagelist[i].distance){						
-						break;						
-					}
-					swap(toplist[j], imagelist[i]);					
+	}		
+	
+	//Sort images into toplist 
+	for (int i = 0; i < vecSize; i++){
+		for (int j = 0; j < topSize; j++){
+			if (toplist[j].distance >= imagelist[i].distance){
+				if (toplist[j].distance == imagelist[i].distance){ // sort out duplicates						
+					break;						
 				}
+				swap(toplist[j], imagelist[i]);					
 			}
+		}
 	}	
 }
 
+/**********************************************************************
+*Sort images from imagelist into toplist (toplist contains dublicates)
+************************************************************************/
 void sortImagesDublicate(vector<ImageDistancePair>& imagelist, vector<ImageDistancePair>& toplist){
 
 	unsigned int vecSize = imagelist.size();
 	unsigned int topSize = toplist.size();
-
+	//Create empty toplist
 	for (int j = 0; j < topSize; j++){
 		toplist[j].distance = 2.0;
 		toplist[j].fileName = "";
 	}
+
+	//Sort images into toplist
 	for (int i = 0; i < vecSize; i++){
 		for (int j = 0; j < topSize; j++){
 			if (toplist[j].distance > imagelist[i].distance){				
@@ -174,6 +177,7 @@ int main(int argc, char *argv[])
 	vector<ImageDistancePair> distances(files);
 	start_ticks = cilk_getticks();
 
+	//Load each file in one thread
 	cilk_for(unsigned int i = 0; i < files; i++){
 		PuzzleCvec puzzleCvec;
 		double d;
@@ -220,8 +224,8 @@ int main(int argc, char *argv[])
 	start_ticks = cilk_getticks();
 
 	
-	cilk_spawn	sortImages(similarImages, simmilarToplist);
-	
+	//Create toplist
+	cilk_spawn	sortImages(similarImages, simmilarToplist);	
 	sortImagesDublicate(identicalImages, toplist);
 	cilk_sync;
 	
@@ -229,8 +233,6 @@ int main(int argc, char *argv[])
 	std::cout << "sorted in " << (cilk_getticks() - start_ticks) << " milliseconds." << std::endl;
 
 
-	//struct_qsort(similarImages.begin(),similarImages.end());
-	
 
 	// print results
 
