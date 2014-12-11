@@ -93,7 +93,7 @@ int parse_opts(Opts * const opts, PuzzleContext * context,
 /**********************************************
 * Sort images from imagelist into toplist
 ***********************************************/
-void sortImages(vector<ImageDistancePair>& imagelist, vector<ImageDistancePair>& toplist){
+void sortImages(vector<ImageDistancePair>& imagelist, vector<ImageDistancePair>& toplist, bool duplicates){
 	unsigned int vecSize = imagelist.size();
 	unsigned int topSize = toplist.size();
 
@@ -107,7 +107,7 @@ void sortImages(vector<ImageDistancePair>& imagelist, vector<ImageDistancePair>&
 	for (int i = 0; i < vecSize; i++){
 		for (int j = 0; j < topSize; j++){
 			if (toplist[j].distance >= imagelist[i].distance){
-				if (toplist[j].distance == imagelist[i].distance){ // sort out duplicates						
+				if (!duplicates && toplist[j].distance == imagelist[i].distance){ // sort out duplicates					
 					break;						
 				}
 				swap(toplist[j], imagelist[i]);	// we don't need a separate variable for that			
@@ -116,28 +116,7 @@ void sortImages(vector<ImageDistancePair>& imagelist, vector<ImageDistancePair>&
 	}	
 }
 
-/**********************************************************************
-*Sort images from imagelist into toplist (toplist contains duplicates)
-************************************************************************/
-void sortImagesDuplicate(vector<ImageDistancePair>& imagelist, vector<ImageDistancePair>& toplist){
 
-	unsigned int vecSize = imagelist.size();
-	unsigned int topSize = toplist.size();
-	//Create empty toplist
-	for (int j = 0; j < topSize; j++){
-		toplist[j].distance = 2.0;
-		toplist[j].fileName = "";
-	}
-
-	//Sort images into toplist
-	for (int i = 0; i < vecSize; i++){
-		for (int j = 0; j < topSize; j++){
-			if (toplist[j].distance > imagelist[i].distance){				
-				swap(toplist[j], imagelist[i]);
-			}
-		}
-	}
-}
 
 int main(int argc, char *argv[])
 {
@@ -225,8 +204,8 @@ int main(int argc, char *argv[])
 
 	
 	//Create toplist
-	cilk_spawn	sortImages(similarImages, similarToplist);	
-	sortImagesDuplicate(identicalImages, toplist);
+	cilk_spawn	sortImages(similarImages, similarToplist, false);	
+	sortImages(identicalImages, toplist, true);
 	cilk_sync;
 	
 
