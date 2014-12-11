@@ -9,6 +9,7 @@ extern "C" {
 #include "listdir.h"
 #include <fstream>
 #include <cilk/cilk.h>
+#include "cilktime.h"
 
 // for qsort
 #include <algorithm>
@@ -98,12 +99,54 @@ void struct_qsort(ImageDistancePair * begin, ImageDistancePair * end)
 	}
 } */
 
+void sortImages(vector<ImageDistancePair>& imagelist, vector<ImageDistancePair>& toplist){
+
+	unsigned int vecSize = imagelist.size();
+	unsigned int topSize = toplist.size();
+
+	for (int j = 0; j < topSize; j++){
+			toplist[j].distance = 2.0;			
+			toplist[j].fileName = "";
+		}		
+		for (int i = 0; i < vecSize; i++){
+			for (int j = 0; j < topSize; j++){
+				if (toplist[j].distance >= imagelist[i].distance){
+					if (toplist[j].distance == imagelist[i].distance){						
+						break;						
+					}
+					swap(toplist[j], imagelist[i]);					
+				}
+			}
+	}	
+}
+
+void sortImagesDublicate(vector<ImageDistancePair>& imagelist, vector<ImageDistancePair>& toplist){
+
+	unsigned int vecSize = imagelist.size();
+	unsigned int topSize = toplist.size();
+
+	for (int j = 0; j < topSize; j++){
+		toplist[j].distance = 2.0;
+		toplist[j].fileName = "";
+	}
+	for (int i = 0; i < vecSize; i++){
+		for (int j = 0; j < topSize; j++){
+			if (toplist[j].distance > imagelist[i].distance){				
+				swap(toplist[j], imagelist[i]);
+			}
+		}
+	}
+}
+
 int main(int argc, char *argv[])
 {
+
+	long long executionStart = cilk_getticks();
     Opts opts;
     PuzzleContext context;
 	PuzzleCvec cvec1;
-    
+	unsigned long long start_ticks = cilk_getticks();
+
     puzzle_init_context(&context);    
     parse_opts(&opts, &context, argc, argv);
 	if (outputFile.length() > 0){
@@ -118,6 +161,8 @@ int main(int argc, char *argv[])
         return 1;
     }
 
+
+	std::cout << "Reference image loaded in " << (cilk_getticks() - start_ticks) << " milliseconds." << std::endl;
 	vector<string> fileNamesVector;
 	
 	listDir(opts.dir, fileNamesVector);
@@ -127,6 +172,8 @@ int main(int argc, char *argv[])
 	// parallel cvec distance calculation
 	unsigned int files = fileNamesVector.size();
 	vector<ImageDistancePair> distances(files);
+	start_ticks = cilk_getticks();
+
 	cilk_for(unsigned int i = 0; i < files; i++){
 		PuzzleCvec puzzleCvec;
 		double d;
@@ -145,11 +192,16 @@ int main(int argc, char *argv[])
 		distances[i] = pair;
 		puzzle_free_cvec(&context, &puzzleCvec);
 	}
+	std::cout << "all images loaded in " << (cilk_getticks() - start_ticks) << " milliseconds." << std::endl;
 
 
 	// filter by thresholds
 	vector<ImageDistancePair> similarImages;
 	vector<ImageDistancePair> identicalImages;
+	vector<ImageDistancePair> toplist(10);
+	vector<ImageDistancePair> simmilarToplist(10);
+
+	start_ticks = cilk_getticks();
 
 	ImageDistancePair pair;
 	for(unsigned int i = 0; i < files; i++){
@@ -163,11 +215,19 @@ int main(int argc, char *argv[])
 			similarImages.push_back(pair);
 		}
 	}
+	std::cout << "all images loaded in " << (cilk_getticks() - start_ticks) << " milliseconds." << std::endl;
 
-	int size = similarImages.size();
-	cilk_spawn sort(similarImages.begin(), similarImages.end());
-	sort(identicalImages.begin(), identicalImages.end());
+	start_ticks = cilk_getticks();
+
+	
+	cilk_spawn	sortImages(similarImages, simmilarToplist);
+	
+	sortImagesDublicate(identicalImages, toplist);
 	cilk_sync;
+	
+
+	std::cout << "sorted in " << (cilk_getticks() - start_ticks) << " milliseconds." << std::endl;
+
 
 	//struct_qsort(similarImages.begin(),similarImages.end());
 	
@@ -175,19 +235,21 @@ int main(int argc, char *argv[])
 	// print results
 
 	// top 10 list or less
-	const int newSize = min(10, size);
+	unsigned int size = simmilarToplist.size();
 	writeOutputLine("*** Pictures found to be similar to " + string(opts.refImage) + " ***\n ");
-	for (int i = 0; i < newSize; i++){
-		pair = similarImages[i]; //topList[i];
+	for (int i = 0; i < size; i++){
+		pair = simmilarToplist[i]; //topList[i];
+		if (pair.fileName == "") continue;
 		writeOutputLine(to_string((long double)pair.distance) + " " + pair.fileName);
 	}
 
 	// print identical
 	writeOutputLine("\n*** Pictures found to be identical/close resemblance to " + string(opts.refImage) + " ***\n");
-	size = identicalImages.size();
-	for (int i = 0; i < min(10, size); i++) {
-		pair = identicalImages[i];
-		writeOutputLine(to_string((long double) pair.distance) + " " + pair.fileName);
+	size = toplist.size();
+	for (int i = 0; i < size; i++) {
+		pair = toplist[i];
+		if (pair.fileName == "") continue;
+		writeOutputLine(to_string((long double)pair.distance) + " " + pair.fileName);
 	}
 
 
@@ -195,5 +257,7 @@ int main(int argc, char *argv[])
 	// free reference image & context
     puzzle_free_cvec(&context, &cvec1);
     puzzle_free_context(&context);
+	cout << "Overall execution time: " << cilk_getticks() - executionStart << endl;
     return 0;
 }
+

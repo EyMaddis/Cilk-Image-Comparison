@@ -181,10 +181,8 @@ static int puzzle_autocrop_view(PuzzleContext * context,
 {
 	unsigned int cropx0, cropx1, cropx_max;
 	unsigned int cropy0, cropy1;
-#if 0
-	unsigned int x, y;
-#endif
-	unsigned char *maptr;
+
+	//unsigned int  y; // x
 
 	if (puzzle_autocrop_axis(context, view, &cropx0, &cropx1,
 		view->width, view->height,
@@ -199,33 +197,28 @@ static int puzzle_autocrop_view(PuzzleContext * context,
 		puzzle_err_bug(__FILE__, __LINE__);
 	}
 
-	//	maptr = view->map;
+	// copy the map/image to enable thread safe readOnly access
+	size_t arraySize = view->sizeof_map*sizeof(unsigned char);
+	unsigned char *readOnlyMaptr = malloc(arraySize);
+	memcpy(readOnlyMaptr, view->map, arraySize);
 
-
-	//printf("\nFunc: puzzle_autocrop_view -- cropx0 = %d, cropx1 = %d, cropy0 = %d, cropy1 = %d", cropx0, cropx1, cropy0, cropy1);
-
-	cilk_for(unsigned int y_temp = (cropy0 - 1); y_temp != cropy1; y_temp++)
+	cilk_for(unsigned int localy = cropy0; localy <= cropy1; localy++)
 	{
-		unsigned int y = y_temp + 1;
-		maptr = view->map;
-		unsigned char *maptr_temp = maptr + ((y - cropy0)*(cropx1 - cropx0 + 1));
-
-		for (unsigned int x_temp = (cropx0 - 1); x_temp != cropx1; x_temp++)
-		{
-			unsigned int x = x_temp + 1;
-			*maptr_temp++ = PUZZLE_VIEW_PIXEL(view, x, y);
-		}
+		unsigned int iteration = localy - cropy0;
+		unsigned int x = cropx0;
+		unsigned char* base_maptr = (view->map + iteration*(cropx1 - cropx0 + 1));
+		unsigned int xIter = 0;
+		do {
+			unsigned char* oldPos = readOnlyMaptr + view->width * localy + x;
+			*base_maptr = *(oldPos); //PUZZLE_VIEW_PIXEL(view, x, localy);
+			base_maptr++;
+			xIter++;
+		} while (x++ != cropx1);
 	}
 
-#if 0
-	y = cropy0;
-	do {
-		x = cropx0;
-		do {
-			*maptr++ = PUZZLE_VIEW_PIXEL(view, x, y);
-		} while (x++ != cropx1);
-	} while (y++ != cropy1);
-#endif
+	// delete temporal readOnly copy.
+	free(readOnlyMaptr);
+
 
 	view->width = cropx1 - cropx0 + 1U;
 	view->height = cropy1 - cropy0 + 1U;
@@ -276,26 +269,6 @@ static int puzzle_getview_from_gdimage(PuzzleContext * const context,
 
 	if (gdImageTrueColor(gdimage) != 0)
 	{
-		/*use cilk_for here...*/
-		/*
-		cilk_for(unsigned int x2 = x1+1; x2 != x0; x2--)
-		{
-		unsigned int x, y, count_x;
-		unsigned char *baseMaptr;
-		count_x = x1-x2+1; // because of x1 = view->width - 1U;
-		baseMaptr = maptr+count_x*(y1+1); // (maxOuterLoops - currentIteration - 1) * inner loop iterations
-		x = x2-1;
-		for (unsigned int y2 = y1+1; y2 != y0; y2--)
-		{
-		y = y2-1;
-		pixel = gdImageGetTrueColorPixel(gdimage, (int) x, (int) y);
-		*baseMaptr++  = (unsigned char)
-		((gdTrueColorGetRed(pixel) * 77 +
-		gdTrueColorGetGreen(pixel) * 151 +
-		gdTrueColorGetBlue(pixel) * 28 + 128) / 256);
-		}
-		}
-		*/
 
 		cilk_for(int x_temp = x1 + 1; x_temp != x0; x_temp--)
 		{
